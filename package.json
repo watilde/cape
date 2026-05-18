@@ -1,5 +1,5 @@
 {
-  "name": "cape-cli",
+  "name": "@watilde/cape",
   "version": "1.0.0",
   "description": "CAPE — Collaborative Agents Prompt Engineering framework",
   "type": "module",
