@@ -219,7 +219,23 @@ All agent voice and conversation outputs are language-configurable via `--lang` 
 
 ---
 
-## 7. Future Work
+## 7. Limitations
+
+### 7.1 One-Way Pipeline and the Absence of Intra-Session Backtracking
+
+The current workflow is strictly linear: CM Open → POA → DA → DevA → CM Retro. When DevA encounters technically infeasible specifications from DA — mismatched data models, missing API contracts, incompatible constraints — the pipeline has no mechanism to route that feedback back upstream within the same session. The infeasibility is recorded as a Problem in the retrospective and surfaced to DA as a Try in the next session, but the current session's output is already degraded. This is an inherent tradeoff of the waterfall handoff model: predictability and legibility come at the cost of intra-session adaptability. A local feedback loop (DevA → DA → DevA) of one or two iterations would increase single-session Task Success Rate but introduces the risk of recursive stalls and role drift that the linear model avoids by design.
+
+### 7.2 DevA's Unrestricted Write Access
+
+DevA writes files directly to the project root using paths it generates from context. There are no guardrails against overwriting existing logic, injecting broken imports, or adding conflicting dependencies to `package.json`. The framework trusts the LLM to scope its changes correctly, which is a reasonable assumption for greenfield tasks but unreliable for sessions modifying mature codebases. Practical mitigations — running `tsc --noEmit` or `npm test` after file generation and feeding errors back to DevA for self-correction, or staging writes as a dry-run diff before applying — are not yet implemented. Until they are, DevA's file output should be treated as a draft requiring human review rather than a safe auto-apply.
+
+### 7.3 Long-Term Growth of kpt_merged.md
+
+The merged KPT file grows monotonically: each session appends its Keep, Problem, and Try items without pruning. This is acceptable for tens of sessions, but over hundreds of sessions the file will grow to a size that meaningfully consumes context budget and introduces noise — resolved Tries and dormant Problems from early sessions carry the same visual weight as recent actionable items. A consolidation mechanism (`cape housekeeping`) that periodically archives items older than N sessions or marks Tries as adopted/dropped would prevent degradation. Without it, the long-term memory advantage of the KPT format eventually inverts into a liability.
+
+---
+
+## 9. Future Work
 
 - **Branching workflows**: Allow CM to detect low-DoR objectives and route to a clarification step before engaging domain agents.
 - **Agent-driven prompt evolution**: Enable agents to propose edits to their own role files in `cape/` as a Try action, with CM reviewing before applying.
@@ -229,13 +245,13 @@ All agent voice and conversation outputs are language-configurable via `--lang` 
 
 ---
 
-## 8. Conclusion
+## 10. Conclusion
 
 CAPE demonstrates that imposing role structure, turn-taking protocol, and retrospective learning on a multi-agent system produces a qualitatively different interaction from both a single-agent prompt and an unstructured multi-agent conversation. The Cape Master role — absent from most multi-agent frameworks — is the mechanism through which process quality is maintained and learning is carried forward. The KPT-based memory system provides longitudinal continuity without architectural complexity. Whether this structure improves measurable task outcomes relative to a single capable model is an empirical question that the framework's metric system is designed to answer.
 
 ---
 
-## Appendix: Glossary
+## Appendix — Glossary
 
 | Term | Definition |
 |------|------------|
