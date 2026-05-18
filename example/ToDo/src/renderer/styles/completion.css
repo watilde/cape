@@ -1,0 +1,307 @@
+/**
+ * 完了機能専用スタイル
+ * DAデザイントークン・アニメーション仕様準拠
+ */
+
+/* ============================================================
+   デザイントークン（カラー）
+   ============================================================ */
+:root {
+  --color-completion-primary: #FF6B9D;
+  --color-completion-secondary: #D8A5E8;
+  --color-completion-success: #A8E6CF;
+  --color-task-completed-text: #9B9B9B;
+  --color-task-completed-bg: #FAFAFA;
+  --color-task-incomplete-bg: #FFFFFF;
+  --color-task-hover-bg: #FFDCC7;
+
+  /* アニメーションタイミングトークン */
+  --duration-check-appear: 150ms;
+  --duration-checkbox-fill: 200ms;
+  --duration-strikethrough: 250ms;
+  --duration-strikethrough-delay: 100ms;
+  --duration-card-fade: 300ms;
+  --duration-sparkle: 400ms;
+  --duration-list-reorder: 300ms;
+  --easing-standard: ease-in-out;
+  --easing-check: ease-out;
+}
+
+/* ============================================================
+   TaskItem — ベーススタイル
+   ============================================================ */
+.task-item {
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: var(--color-task-incomplete-bg);
+  border: 1px solid #F0F0F0;
+  box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.06);
+  list-style: none;
+  transition:
+    background var(--duration-card-fade) var(--easing-standard),
+    box-shadow var(--duration-card-fade) var(--easing-standard),
+    opacity var(--duration-card-fade) var(--easing-standard);
+}
+
+.task-item:hover:not(.task-item--completed) {
+  background: var(--color-task-hover-bg);
+  box-shadow: 0px 2px 8px rgba(255, 107, 157, 0.15);
+}
+
+/* 完了済み状態 */
+.task-item--completed {
+  background: var(--color-task-completed-bg);
+  box-shadow: none;
+  opacity: 0.65;
+}
+
+/* ============================================================
+   TaskItem — レイアウト
+   ============================================================ */
+.task-item__toggle-wrapper {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.task-item__content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 12px;
+}
+
+.task-item__emoji {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.task-item__title {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #2D2D2D;
+  position: relative;
+  display: inline-block;
+  word-break: break-word;
+  transition: color var(--duration-card-fade) var(--easing-standard);
+}
+
+/* 取り消し線アニメーション（DAハンドオフノート: ::after疑似要素 + widthトランジション） */
+.task-item__title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 2px;
+  background: var(--color-completion-secondary); /* Lavender Purple #D8A5E8 */
+  width: 0%;
+  transition: width var(--duration-strikethrough) var(--easing-standard)
+    var(--duration-strikethrough-delay);
+  transform: translateY(-50%);
+  border-radius: 1px;
+}
+
+/* 完了済み: 取り消し線100%展開 */
+.task-item--completed .task-item__title {
+  color: var(--color-task-completed-text);
+}
+
+.task-item--completed .task-item__title::after {
+  width: 100%;
+}
+
+/* アクション */
+.task-item__actions {
+  flex-shrink: 0;
+}
+
+.task-item__delete-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  color: #C0C0C0;
+  transition: color 150ms ease, background 150ms ease;
+  padding: 0;
+}
+
+.task-item__delete-button:hover {
+  color: var(--color-completion-primary);
+  background: rgba(255, 107, 157, 0.08);
+}
+
+/* ============================================================
+   CompletionToggle — カスタムチェックボックス
+   ============================================================ */
+.completion-toggle {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.completion-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.completion-toggle__circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-completion-secondary); /* Lavender Purple */
+  background: transparent;
+  transition:
+    background var(--duration-checkbox-fill) var(--easing-standard),
+    border-color var(--duration-checkbox-fill) var(--easing-standard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.completion-toggle:hover .completion-toggle__circle {
+  border-color: var(--color-completion-primary);
+  background: rgba(255, 107, 157, 0.08);
+}
+
+.completion-toggle__circle--checked {
+  background: var(--color-completion-primary);
+  border-color: var(--color-completion-primary);
+}
+
+/* チェックマークSVGのストロークアニメーション */
+.completion-toggle__checkmark {
+  display: block;
+}
+
+.completion-toggle__checkmark path {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  animation: draw-check var(--duration-check-appear) var(--easing-check) forwards;
+}
+
+@keyframes draw-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ============================================================
+   TaskList — レイアウト
+   ============================================================ */
+.task-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list__section {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-list__completed-section {
+  margin-top: 16px;
+}
+
+/* セクションラベル（DA仕様: 12px, Medium Gray, uppercase） */
+.task-list__section-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9B9B9B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px 0;
+}
+
+/* 全完了メッセージ */
+.task-list__all-completed {
+  animation: fade-in 200ms ease-out;
+  margin-bottom: 16px;
+}
+
+.task-list__all-completed-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-completion-primary);
+  text-align: center;
+  margin: 0;
+}
+
+/* 空状態 */
+.task-list__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.task-list__empty-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #9B9B9B;
+  text-align: center;
+  margin: 0;
+}
+
+/* ============================================================
+   スパークルパーティクル
+   ============================================================ */
+.sparkle-particle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: sparkle-fly var(--duration-sparkle) ease-out forwards;
+}
+
+@keyframes sparkle-fly {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(
+        calc(-50% + cos(var(--sparkle-angle, 45deg)) * var(--sparkle-distance, 30px)),
+        calc(-50% + sin(var(--sparkle-angle, 45deg)) * var(--sparkle-distance, 30px))
+      )
+      scale(0);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   汎用アニメーション
+   ============================================================ */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

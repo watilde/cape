@@ -1,0 +1,636 @@
+/*
+ * StyleToDo グローバルスタイル
+ * DA仕様に準拠したデザイントークン・コンポーネントスタイル
+ * Webアプリ完結（Electron固有スタイルなし）
+ */
+
+/* =============================================
+   デザイントークン（CSS カスタムプロパティ）
+   DA: design_system_tokens
+============================================= */
+:root {
+  /* カラーパレット（StyleToDoブランドガイドライン準拠） */
+  --color-primary: #ff6b9d;
+  --color-secondary: #d8a5e8;
+  --color-success: #a8e6cf;
+  --color-bg-main: #fafafa;
+  --color-bg-card: #f0f0f0;
+  --color-bg-white: #ffffff;
+  --color-text-primary: #2d2d2d;
+  --color-text-secondary: #9b9b9b;
+  --color-warning: #ff8c6f;
+  --color-hover: #ffdcc7;
+
+  /* スペーシング */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 48px;
+
+  /* ボーダーラジアス */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-pill: 24px;
+  --radius-circle: 50%;
+
+  /* シャドウ */
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 3px 12px rgba(216, 165, 232, 0.2);
+  --shadow-input: 0 2px 12px rgba(255, 107, 157, 0.08);
+  --shadow-cta: 0 4px 12px rgba(255, 107, 157, 0.35);
+
+  /* アニメーション */
+  --anim-fast: 150ms ease;
+  --anim-normal: 200ms ease;
+  --anim-slow: 300ms ease;
+  --anim-bounce: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --anim-delete: 280ms cubic-bezier(0.4, 0, 1, 1);
+
+  /* Z-index */
+  --z-base: 0;
+  --z-overlay: 100;
+  --z-snackbar: 1000;
+
+  /* フォント */
+  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-poppins: 'Poppins', 'Inter', sans-serif;
+  --font-quicksand: 'Quicksand', 'Inter', sans-serif;
+}
+
+/* prefers-reduced-motion対応（DA仕様） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =============================================
+   リセット・ベーススタイル
+============================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-inter);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+ul {
+  list-style: none;
+}
+
+/* フォーカスリング（全インタラクティブ要素・DA仕様） */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* =============================================
+   アプリレイアウト
+============================================= */
+.app-container {
+  min-height: 100dvh;
+  max-width: 480px; /* DA仕様: モバイルファースト */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-main);
+}
+
+.app-main {
+  flex: 1;
+  padding: 0 var(--space-md) 80px; /* 下部にUndoSnackbar用の余白 */
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    padding: 0 var(--space-lg) 80px;
+  }
+}
+
+/* =============================================
+   AppHeader
+   DA仕様: Poppins 28px / Sweet Pink / height 64px
+============================================= */
+.app-header {
+  height: 64px;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-bg-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.app-header__title {
+  font-family: var(--font-poppins);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.app-header__subtitle {
+  font-family: var(--font-quicksand);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* =============================================
+   TaskInput
+   DA仕様: flex コンテナ / shakeアニメーション
+============================================= */
+.task-input {
+  margin: var(--space-md) 0;
+}
+
+.task-input__container {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-input);
+}
+
+.task-input__container--shake {
+  animation: shake 400ms ease;
+}
+
+.task-input__field {
+  flex: 1;
+  font-family: var(--font-inter);
+  font-size: 16px;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 12px var(--space-md);
+  transition: all var(--anim-normal);
+  outline: none;
+  min-width: 0; /* flex子要素のオーバーフロー防止 */
+}
+
+.task-input__field::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.task-input__field:focus {
+  border-color: var(--color-primary);
+  background: var(--color-bg-white);
+}
+
+.task-input__add-btn {
+  font-family: var(--font-poppins);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-bg-white);
+  background: linear-gradient(135deg, #ff6b9d, #d8a5e8);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  min-width: 80px;
+  min-height: 44px; /* DA仕様: タップ領域最小44px */
+  transition: all var(--anim-fast);
+  white-space: nowrap;
+}
+
+.task-input__add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-cta);
+}
+
+.task-input__add-btn:active {
+  transform: translateY(0);
+}
+
+.task-input__helper {
+  font-family: var(--font-inter);
+  font-size: 13px;
+  color: var(--color-primary);
+  margin-top: var(--space-xs);
+  padding-left: var(--space-md);
+  animation: fadeIn var(--anim-normal);
+}
+
+/* =============================================
+   TaskList
+   DA仕様: スクロールバー非表示 / touch-action: pan-y
+============================================= */
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  overflow-y: auto;
+  /* スクロールバー非表示（DA仕様: Safari対応） */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-y; /* DA モバイルタッチハンドオフ: スクロール競合防止 */
+}
+
+.task-list::-webkit-scrollbar {
+  display: none; /* Safari対応（DA仕様: webkit_scrollbar_note） */
+}
+
+.task-list--loading {
+  min-height: 200px;
+}
+
+/* =============================================
+   TaskItem
+   DA仕様: 4ステート（default/completed/hover/deleting）
+============================================= */
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px var(--space-md);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--color-bg-card);
+  box-shadow: var(--shadow-card);
+  transition: all var(--anim-normal);
+  position: relative;
+  overflow: visible; /* confettiのはみ出しを許容 */
+}
+
+.task-item:hover {
+  border-color: var(--color-secondary);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+/* DA仕様: enteringアニメーション（slideDown + fadeIn 300ms） */
+.task-item--entering {
+  animation: slideDownFadeIn var(--anim-slow) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* DA仕様: deletingアニメーション（slideLeft + fadeOut + height collapse） */
+.task-item--deleting {
+  animation: slideLeftFadeOut var(--anim-delete);
+  pointer-events: none;
+}
+
+/* チェックトグルラッパー（confetti位置の基準点） */
+.task-item__check-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* DA仕様: チェックトグル min 44×44px タップ領域 */
+.task-item__check-toggle {
+  width: 24px;
+  height: 24px;
+  min-width: 44px; /* パディングでタップ領域を確保 */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-circle);
+  border: 2px solid var(--color-secondary);
+  background: transparent;
+  transition: all var(--anim-normal);
+  flex-shrink: 0;
+}
+
+.task-item__check-toggle--checked {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  animation: scaleBounce var(--anim-bounce);
+}
+
+.task-item__check-icon {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-bg-white);
+  line-height: 1;
+}
+
+/* DA仕様: タスクタイトル */
+.task-item__title {
+  font-family: var(--font-inter);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  flex: 1;
+  line-height: 1.5;
+  transition: all 250ms ease;
+  word-break: break-word;
+}
+
+.task-item__title--completed {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-success);
+  text-decoration-thickness: 2px;
+}
+
+/* DA仕様: 削除ボタン（default opacity 0.25、hover 1.0） */
+.task-item__delete-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-warning);
+  opacity: 0.25;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--anim-normal), color var(--anim-normal);
+}
+
+.task-item__delete-btn:hover,
+.task-item__delete-btn:focus-visible {
+  opacity: 1;
+}
+
+.task-item__delete-btn:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 2px;
+}
+
+.task-item__delete-btn:disabled {
+  pointer-events: none;
+}
+
+/* =============================================
+   CompletionCelebration（confetti）
+   DA仕様: CSS keyframes + clip-path / ライブラリ不使用
+============================================= */
+.confetti-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: var(--z-overlay);
+}
+
+.confetti-message {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-quicksand);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+  animation: celebrationMessage 1200ms ease forwards;
+}
+
+.confetti-particle {
+  position: absolute;
+  width: var(--size, 6px);
+  height: var(--size, 6px);
+  background-color: var(--color, #ff6b9d);
+  border-radius: 2px;
+  top: 0;
+  left: 0;
+  animation: confettiBurst 600ms ease-out forwards;
+  /* --angleを使ってそれぞれの方向に飛ばす */
+  transform-origin: center;
+}
+
+/* =============================================
+   EmptyState
+   DA仕様: gentle float 3s / Poppins + Quicksand
+============================================= */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+}
+
+.empty-state__illustration {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+.empty-state__headline {
+  font-family: var(--font-poppins);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.empty-state__body {
+  font-family: var(--font-quicksand);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* =============================================
+   UndoSnackbar
+   DA仕様: fixed bottom 24px / auto-dismiss 3s
+============================================= */
+.undo-snackbar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-snackbar);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-text-primary);
+  color: var(--color-bg-white);
+  border-radius: var(--radius-pill);
+  padding: 12px 20px;
+  font-family: var(--font-inter);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.undo-snackbar--visible {
+  animation: snackbarAppear 250ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.undo-snackbar--hidden {
+  animation: snackbarDismiss 200ms ease forwards;
+}
+
+.undo-snackbar__message {
+  flex: 1;
+}
+
+.undo-snackbar__undo-btn {
+  font-family: var(--font-poppins);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-left: 12px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--anim-fast);
+}
+
+.undo-snackbar__undo-btn:hover {
+  opacity: 0.8;
+}
+
+.undo-snackbar__close-btn {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 4px;
+  margin-left: var(--space-xs);
+  border-radius: var(--radius-sm);
+  transition: color var(--anim-fast);
+}
+
+.undo-snackbar__close-btn:hover {
+  color: var(--color-bg-white);
+}
+
+/* =============================================
+   キーフレームアニメーション定義
+============================================= */
+
+/* DA仕様: shake（空入力エラー 400ms） */
+@keyframes shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+/* DA仕様: タスク追加 slideDown + fadeIn 300ms */
+@keyframes slideDownFadeIn {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* DA仕様: 削除 slideLeft + fadeOut */
+@keyframes slideLeftFadeOut {
+  from {
+    transform: translateX(0) scaleY(1);
+    opacity: 1;
+    max-height: 200px;
+    margin-bottom: var(--space-sm);
+  }
+  70% {
+    transform: translateX(-20px) scaleY(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-20px) scaleY(0);
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+/* DA仕様: checkトグル scale bounce */
+@keyframes scaleBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* confetti burst（各パーティクルが--angleで指定した方向へ飛ぶ） */
+@keyframes confettiBurst {
+  0% {
+    transform: rotate(var(--angle)) translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--angle)) translateY(-60px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* confettiメッセージ（DA仕様: 1200ms表示後フェードアウト） */
+@keyframes celebrationMessage {
+  0% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+}
+
+/* DA仕様: gentle float 3s（EmptyState） */
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* フェードイン */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* UndoSnackbar slideUp + fadeIn */
+@keyframes snackbarAppear {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* UndoSnackbar fadeOut */
+@keyframes snackbarDismiss {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+}

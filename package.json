@@ -1,0 +1,31 @@
+{
+  "name": "cape-cli",
+  "version": "1.0.0",
+  "description": "CAPE — Collaborative Agents Prompt Engineering framework",
+  "type": "module",
+  "bin": {
+    "cape": "./bin/cape.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "cape"
+  ],
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "tsc",
+    "prepare": "tsc",
+    "run:session": "tsx --env-file=.env src/run-session.ts",
+    "cape": "tsx src/cli/index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.78",
+    "@mastra/core": "^1.35.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

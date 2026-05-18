@@ -1,0 +1,266 @@
+/* ─── CSS Variables ─────────────────────────────────────────────────────────── */
+:root {
+  --color-editing-border: #ff6b9d;
+  --color-editing-glow: rgba(255, 107, 157, 0.15);
+  --color-error-border: #ff8c6f;
+  --color-error-glow: rgba(255, 140, 111, 0.15);
+  --color-success-badge: #a8e6cf;
+  --color-completed-text: #9b9b9b;
+  --color-card-border: #f0f0f0;
+  --color-card-bg: #ffffff;
+  --transition-fast: 150ms ease-out;
+  --transition-medium: 200ms ease-out;
+}
+
+/* ─── Base Card ─────────────────────────────────────────────────────────────── */
+.task-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: 12px;
+  padding: 16px;
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  user-select: none;
+}
+
+.task-item:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.35);
+}
+
+/* ─── Editing State ──────────────────────────────────────────────────────────── */
+.task-item--editing {
+  border: 2px solid var(--color-editing-border);
+  box-shadow: 0 0 0 4px var(--color-editing-glow);
+  user-select: text;
+}
+
+/* ─── Editing Error State ────────────────────────────────────────────────────── */
+.task-item--editing-error {
+  border: 2px solid var(--color-error-border);
+  box-shadow: 0 0 0 4px var(--color-error-glow);
+}
+
+/* ─── Completed State ────────────────────────────────────────────────────────── */
+.task-item--completed {
+  opacity: 0.6;
+  transition: opacity var(--transition-medium);
+}
+
+.task-item--completed .task-item__title {
+  text-decoration: line-through;
+  color: var(--color-completed-text);
+  transition: color var(--transition-medium);
+}
+
+/* ─── Shake Animation ────────────────────────────────────────────────────────── */
+/* translateX のみ使用。実験的CSS関数を排除。 */
+@keyframes taskEditShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.task-item--shaking {
+  animation: taskEditShake 300ms ease-out forwards;
+}
+
+/* ─── Checkbox ───────────────────────────────────────────────────────────────── */
+.task-item__checkbox {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-success-badge);
+  font-weight: 700;
+  transition:
+    border-color var(--transition-fast),
+    opacity var(--transition-fast);
+  padding: 0;
+}
+
+.task-item__checkbox:hover:not([aria-disabled='true']) {
+  border-color: var(--color-editing-border);
+}
+
+/* 編集中チェックボックス非活性: 視覚的フィードバック必須（DAクリティカル制約） */
+.task-item__checkbox--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+  transition: opacity var(--transition-fast);
+}
+
+/* ─── Content Area ───────────────────────────────────────────────────────────── */
+.task-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Title ──────────────────────────────────────────────────────────────────── */
+.task-item__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #2d2d2d;
+  line-height: 1.5;
+  cursor: default;
+  word-break: break-word;
+}
+
+.task-item--completed .task-item__title {
+  cursor: default;
+}
+
+/* 完了していない場合のみ編集可能カーソルを示す */
+.task-item:not(.task-item--completed) .task-item__title {
+  cursor: text;
+}
+
+.task-item__emoji {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ─── Edit Input ─────────────────────────────────────────────────────────────── */
+.task-item__edit-input {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #2d2d2d;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  line-height: 1.5;
+  /* カード自体のボーダーで編集状態を表現するためinputにはborderを付けない */
+}
+
+/* ─── Edit Hint Text ─────────────────────────────────────────────────────────── */
+.task-item__edit-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #9b9b9b;
+  margin: 4px 0 0 0;
+  padding: 0;
+  animation: fadeIn 150ms ease-out;
+  line-height: 1.4;
+}
+
+.task-item__edit-hint--error {
+  /* Coral Orange: コントラスト比 2.9:1 のため色だけに依存しない
+     テキスト変化 + シェイクアニメーションを必ず併用（DAアクセシビリティ要件） */
+  color: #ff8c6f;
+  font-weight: 500;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Save Confirm Badge ─────────────────────────────────────────────────────── */
+/* transform: scale / opacity のみ使用。cos()/sin() 等の実験的関数を排除。 */
+.task-item__save-badge {
+  flex-shrink: 0;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-success-badge);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+@keyframes saveBadgeEnter {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes saveBadgeExit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.task-item__save-badge--enter {
+  animation: saveBadgeEnter 200ms ease-out forwards;
+}
+
+.task-item__save-badge--exit {
+  animation: saveBadgeExit 400ms ease-out forwards;
+}
+
+/* ─── Tooltip ────────────────────────────────────────────────────────────────── */
+.task-item__tooltip {
+  position: absolute;
+  top: -44px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  padding: 6px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #2d2d2d;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  animation: fadeIn 150ms ease-out;
+}

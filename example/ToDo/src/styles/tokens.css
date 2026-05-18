@@ -1,0 +1,94 @@
+/**
+ * Design Tokens — StyleToDo Brand System
+ * Source: DA output (design_tokens.css_variables)
+ * DA reference: task-1779078001280
+ *
+ * All components consume these variables exclusively.
+ * Never hard-code color/spacing/typography values in component CSS.
+ */
+
+:root {
+  /* ── Colors ─────────────────────────────────────────────── */
+  --color-primary: #FF6B9D;       /* Sweet Pink — Primary actions, CTAs */
+  --color-secondary: #D8A5E8;     /* Lavender Purple — Secondary actions */
+  --color-success: #A8E6CF;       /* Mint Green — Completed tasks, positive feedback */
+  --color-warning: #FF8C6F;       /* Coral Orange — Pending, warnings */
+  --color-info: #87CEEB;          /* Sky Blue — Information states */
+  --color-accent-hover: #FFDCC7;  /* Soft Peach — Hover states */
+
+  --color-bg-primary: #FAFAFA;
+  --color-bg-secondary: #F0F0F0;
+
+  --color-text-primary: #2D2D2D;
+  --color-text-secondary: #9B9B9B;
+  --color-text-disabled: #9B9B9B;
+
+  --color-black: #000000;
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-accent: 'Quicksand', sans-serif;
+
+  --font-size-h1: 32px;
+  --font-size-h2: 24px;
+  --font-size-h3: 18px;
+  --font-size-body: 16px;
+  --font-size-label: 14px;
+
+  --font-weight-bold: 700;
+  --font-weight-semibold: 600;
+  --font-weight-medium: 500;
+  --font-weight-regular: 400;
+
+  --line-height-heading: 1.2;
+  --line-height-body: 1.6;
+
+  /* ── Spacing ─────────────────────────────────────────────── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* ── Border Radius ───────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.10);
+  --shadow-focus: 0 0 0 3px rgba(255, 107, 157, 0.25);
+
+  /* ── Transitions ─────────────────────────────────────────── */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 250ms ease-in-out;
+  --transition-slow: 400ms ease-in-out;
+}
+
+/* ── Base reset ────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+}
