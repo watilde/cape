@@ -1,0 +1,151 @@
+/* ==========================================================================
+   Confetti Effect Styles
+   DA仕様準拠: task-1779179987205
+   全keyframe値はDA出力から直接転写
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   単一タスク完了エフェクト
+   duration: 1400ms / easing: cubic-bezier(0.25, 0.46, 0.45, 0.94)
+   DA差分1: CSS変数はJS計算済みの最終値を使用（calc()ネスト問題回避）
+   -------------------------------------------------------------------------- */
+@keyframes confetti-fly {
+  0% {
+    transform: translate(var(--p-x0), var(--p-y0)) rotate(0deg) scale(0);
+    opacity: 0;
+  }
+
+  10% {
+    transform: translate(var(--p-burst-x), var(--p-burst-y))
+      rotate(var(--p-burst-rot)) scale(var(--p-burst-scale));
+    opacity: 1;
+  }
+
+  50% {
+    transform: translate(var(--p-mid-x), var(--p-mid-y))
+      rotate(var(--p-mid-rot)) scale(var(--p-mid-scale));
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translate(var(--p-final-x), var(--p-final-y))
+      rotate(var(--p-final-rot)) scale(var(--p-final-scale));
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   全タスク完了特別エフェクト
+   duration: 2100ms / easing: cubic-bezier(0.25, 0.46, 0.45, 0.94)
+   差分: scale最大1.4 / vy範囲拡大 / 落下 +240px
+   -------------------------------------------------------------------------- */
+@keyframes confetti-fly-grand {
+  0% {
+    transform: translate(var(--p-x0), var(--p-y0)) rotate(0deg) scale(0);
+    opacity: 0;
+  }
+
+  8% {
+    transform: translate(var(--p-burst-x), var(--p-burst-y))
+      rotate(var(--p-burst-rot)) scale(var(--p-burst-scale));
+    opacity: 1;
+  }
+
+  50% {
+    transform: translate(var(--p-mid-x), var(--p-mid-y))
+      rotate(var(--p-mid-rot)) scale(1.1);
+    opacity: 1;
+  }
+
+  75% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translate(var(--p-final-x), var(--p-final-y))
+      rotate(var(--p-final-rot)) scale(var(--p-final-scale));
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   チェックボックス完了 pop エフェクト
+   duration: 400ms / easing: cubic-bezier(0.34, 1.56, 0.64, 1)（spring bounce）
+   -------------------------------------------------------------------------- */
+@keyframes check-pop {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0px rgba(255, 107, 157, 0);
+  }
+
+  40% {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 6px rgba(255, 107, 157, 0.18);
+  }
+
+  70% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 10px rgba(255, 107, 157, 0.06);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 14px rgba(255, 107, 157, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   全完了バナー
+   duration: 2400ms / easing: ease
+   位置: DA仕様 top:72px / center / gradient #FF6B9D→#D8A5E8
+   -------------------------------------------------------------------------- */
+@keyframes all-done-banner {
+  0% {
+    transform: translateX(-50%) translateY(-24px) scale(0.9);
+    opacity: 0;
+  }
+
+  15% {
+    transform: translateX(-50%) translateY(0px) scale(1.04);
+    opacity: 1;
+  }
+
+  25% {
+    transform: translateX(-50%) translateY(0px) scale(1);
+    opacity: 1;
+  }
+
+  70% {
+    transform: translateX(-50%) translateY(0px) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(-50%) translateY(-16px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   check-pop クラス付与時のアニメーション適用
+   -------------------------------------------------------------------------- */
+.check-pop {
+  animation: check-pop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+/* --------------------------------------------------------------------------
+   アクセシビリティ保護（CSS側 二重保護）
+   DA仕様: JS matchMedia チェックに加えてCSS保険
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .confetti-particle,
+  .all-done-banner,
+  .check-pop {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
