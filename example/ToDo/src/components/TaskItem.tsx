@@ -17,11 +17,14 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ todo, isNew = false }: TaskItemProps): React.JSX.Element {
-  const { toggleTodo, deleteTodo } = useTodos();
+  const { toggleTodo, editTodo, deleteTodo } = useTodos();
   const { showDeleteNotification } = useUiState();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEntering, setIsEntering] = useState(isNew);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(todo.title);
+  const editInputRef = useRef<HTMLInputElement>(null);
   const prevCompletedRef = useRef(todo.completed);
 
   // 新規アイテムのenteringアニメーション（DA仕様: slideDown + fadeIn 300ms）
@@ -63,6 +66,35 @@ export function TaskItem({ todo, isNew = false }: TaskItemProps): React.JSX.Elem
     setShowCelebration(false);
   }, []);
 
+  const handleEditStart = useCallback(() => {
+    if (todo.completed || isDeleting) return;
+    setEditValue(todo.title);
+    setIsEditing(true);
+  }, [todo.title, todo.completed, isDeleting]);
+
+  const handleEditSave = useCallback(() => {
+    const trimmed = editValue.trim();
+    if (trimmed.length > 0) {
+      editTodo(todo.id, trimmed);
+    }
+    setIsEditing(false);
+  }, [editValue, todo.id, editTodo]);
+
+  const handleEditKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') handleEditSave();
+      if (e.key === 'Escape') setIsEditing(false);
+    },
+    [handleEditSave],
+  );
+
+  useEffect(() => {
+    if (isEditing) {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }
+  }, [isEditing]);
+
   const containerClass = [
     'task-item',
     todo.completed ? 'task-item--completed' : '',
@@ -87,9 +119,29 @@ export function TaskItem({ todo, isNew = false }: TaskItemProps): React.JSX.Elem
         <CompletionCelebration active={showCelebration} onComplete={handleCelebrationComplete} />
       </div>
 
-      <span className={`task-item__title${todo.completed ? ' task-item__title--completed' : ''}`}>
-        {todo.title}
-      </span>
+      {isEditing ? (
+        <input
+          ref={editInputRef}
+          className="task-item__edit-input"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleEditKeyDown}
+          onBlur={handleEditSave}
+          maxLength={100}
+          aria-label="タスク名を編集"
+        />
+      ) : (
+        <span
+          className={`task-item__title${todo.completed ? ' task-item__title--completed' : ''}`}
+          onClick={handleEditStart}
+          role={todo.completed ? undefined : 'button'}
+          tabIndex={todo.completed ? undefined : 0}
+          onKeyDown={(e) => e.key === 'Enter' && handleEditStart()}
+          title={todo.completed ? undefined : 'クリックして編集'}
+        >
+          {todo.title}
+        </span>
+      )}
 
       <button
         className="task-item__delete-btn"

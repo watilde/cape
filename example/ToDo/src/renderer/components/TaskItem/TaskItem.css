@@ -1,0 +1,291 @@
+/* ===================================================================
+   TaskItem — Inline Editing States
+   Based on DA component_specs (task-1779177689644)
+   All keyframe values are confirmed/exact (no estimated values)
+   =================================================================== */
+
+/* ----- Base task item ----- */
+.task-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  cursor: default;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS Safari: prevent context menu on long press */
+  outline: none; /* focus ring handled via box-shadow */
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+/* Focus visible for keyboard navigation (container) */
+.task-item:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 107, 157, 0.5);
+}
+
+/* ----- Hover state (non-completed only) ----- */
+.task-item:not(.task-item--completed):hover {
+  background: #ffdcc7;
+  border-color: #ff6b9d;
+  cursor: text;
+}
+
+/* Show hint on hover */
+.task-item:not(.task-item--completed):hover .task-item__edit-hint {
+  opacity: 1;
+}
+
+/* ----- Edit hint (visible on hover) ----- */
+.task-item__edit-hint {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #9b9b9b;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none;
+}
+
+/* ----- Main row layout ----- */
+.task-item__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* ----- Checkbox ----- */
+.task-item__checkbox {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #ff6b9d;
+}
+
+/* ----- Title text (view mode) ----- */
+.task-item__title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #2d2d2d;
+  line-height: 1.5;
+  word-break: break-word;
+  min-height: 24px;
+}
+
+/* ----- Delete button ----- */
+.task-item__delete-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  color: #9b9b9b;
+  line-height: 1;
+}
+
+.task-item:hover .task-item__delete-btn {
+  opacity: 1;
+}
+
+/* ===== EDITING STATE (AC-EDIT-07 / MustHave visual) ===== */
+.task-item--editing {
+  border: 2px solid #ff6b9d;
+  padding: 11px 15px; /* compensate for extra 1px border */
+  box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.12);
+  transition: border-color 100ms ease, box-shadow 100ms ease;
+  cursor: default;
+  background: #ffffff;
+}
+
+/* "編集中" label shown in editing mode */
+.task-item__editing-label {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ff6b9d;
+  pointer-events: none;
+}
+
+/* ----- Textarea (editing input) ----- */
+.task-item__input {
+  flex: 1;
+  caret-color: #ff6b9d;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #2d2d2d;
+  line-height: 1.5;
+  resize: none;
+  overflow: hidden;
+  min-height: 24px;
+  max-height: 72px; /* max 3 lines = 24px × 3 */
+  padding: 0;
+}
+
+.task-item__input:focus {
+  outline: none;
+}
+
+/* ===== ERROR STATE (AC-EDIT-04) ===== */
+.task-item--editing.task-item--error {
+  border-color: #ff8c6f;
+  box-shadow: 0 0 0 4px rgba(255, 140, 111, 0.12);
+}
+
+/* ----- Footer row (counter + validation) ----- */
+.task-item__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+/* ----- Validation message ----- */
+.task-item__validation-msg {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #ff8c6f;
+  animation: fadeInDown 120ms ease forwards;
+}
+
+.task-item__validation-msg__icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ----- Character counter (AC-EDIT-04) ----- */
+.task-item__char-counter {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #9b9b9b;
+  text-align: right;
+  transition: color 150ms ease;
+  margin-left: auto;
+  /* aria-live="polite" on element */
+}
+
+.task-item__char-counter--warning {
+  color: #ff8c6f;
+}
+
+.task-item__char-counter--limit {
+  color: #ff8c6f;
+  font-weight: 600;
+}
+
+/* ===== COMPLETED / LOCKED STATE (AC-EDIT-05) ===== */
+.task-item--completed {
+  opacity: 0.6;
+}
+
+.task-item--completed .task-item__title {
+  text-decoration: line-through;
+  color: #9b9b9b;
+}
+
+.task-item--completed.task-item--locked {
+  cursor: not-allowed;
+}
+
+/* Shake trigger class (added via JS, removed on animationend) */
+.task-item--shake {
+  animation: editLockShake 320ms ease-in-out;
+}
+
+/* ----- Lock tooltip ----- */
+.task-item__lock-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  background: #2d2d2d;
+  color: #fafafa;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 10;
+  animation: fadeIn 100ms ease forwards;
+  pointer-events: none;
+}
+
+/* ===== SAVE FLASH animation applied via JS class ===== */
+.task-item--save-flash {
+  animation: saveFlash 400ms ease-out forwards;
+}
+
+/* ===================================================================
+   KEYFRAME DEFINITIONS
+   All values are exact (confirmed by DA, task-1779177689644)
+   =================================================================== */
+
+@keyframes editLockShake {
+  0%   { transform: translateX(0);   }
+  15%  { transform: translateX(-6px); }
+  30%  { transform: translateX(6px);  }
+  45%  { transform: translateX(-4px); }
+  60%  { transform: translateX(4px);  }
+  75%  { transform: translateX(-2px); }
+  90%  { transform: translateX(2px);  }
+  100% { transform: translateX(0);   }
+}
+
+@keyframes saveFlash {
+  0% {
+    border-color: #ff6b9d;
+    box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.12);
+  }
+  40% {
+    border-color: #a8e6cf;
+    box-shadow: 0 0 0 4px rgba(168, 230, 207, 0.2);
+  }
+  100% {
+    border-color: #f0f0f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+}
+
+@keyframes cancelRollback {
+  0% {
+    border-color: #ff6b9d;
+    box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.12);
+  }
+  100% {
+    border-color: #f0f0f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+}
+
+@keyframes fadeInDown {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes fadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}

@@ -1,8 +1,3 @@
-/**
- * TodoContext
- * - アプリケーション全体のTodo状態管理
- * - TOGGLE_TODO_COMPLETION アクションを含む
- */
 import React, {
   createContext,
   useContext,
@@ -11,157 +6,135 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-import { Todo, CreateTodoInput } from '../../lib/types/todo';
-import {
-  initialize,
-  getAllTodos,
-  addTodo,
-  updateTodoInRepo,
-  removeTodo,
-  toggleTodoCompletion,
-} from '../../lib/repository/todoRepository';
+import { Todo } from '../types/todo';
 
-// --- State ---
-interface TodoState {
-  todos: Todo[];
-  isLoading: boolean;
-  error: string | null;
+// ---------------------------------------------------------------------------
+// Storage helpers
+// ---------------------------------------------------------------------------
+const STORAGE_KEY = 'todoapp_v1_todos';
+
+function loadTodosFromStorage(): Todo[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed as Todo[];
+  } catch {
+    return [];
+  }
 }
 
-// --- Actions ---
-type TodoAction =
-  | { type: 'INIT_TODOS'; payload: Todo[] }
-  | { type: 'ADD_TODO'; payload: Todo }
-  | { type: 'UPDATE_TODO'; payload: Todo }
-  | { type: 'REMOVE_TODO'; payload: string }
-  | { type: 'TOGGLE_TODO_COMPLETION'; payload: Todo }
-  | { type: 'SET_ERROR'; payload: string };
+function saveTodosToStorage(todos: Todo[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  } catch (e) {
+    console.error('[TodoContext] LocalStorage write failed:', e);
+  }
+}
 
-// --- Reducer ---
+// ---------------------------------------------------------------------------
+// State & Actions
+// ---------------------------------------------------------------------------
+interface TodoState {
+  todos: Todo[];
+  editingId: string | null;
+}
+
+type TodoAction =
+  | { type: 'ADD_TODO'; payload: Todo }
+  | { type: 'UPDATE_TODO'; payload: { id: string; updates: Partial<Todo> } }
+  | { type: 'DELETE_TODO'; payload: { id: string } }
+  | { type: 'SET_EDITING_ID'; payload: { id: string | null } }
+  | { type: 'LOAD_TODOS'; payload: Todo[] };
+
 function todoReducer(state: TodoState, action: TodoAction): TodoState {
   switch (action.type) {
-    case 'INIT_TODOS':
-      return { ...state, todos: action.payload, isLoading: false };
+    case 'LOAD_TODOS':
+      return { ...state, todos: action.payload };
+
     case 'ADD_TODO':
       return { ...state, todos: [action.payload, ...state.todos] };
-    case 'UPDATE_TODO':
+
+    case 'UPDATE_TODO': {
+      const updated = state.todos.map((t) =>
+        t.id === action.payload.id ? { ...t, ...action.payload.updates } : t,
+      );
+      return { ...state, todos: updated };
+    }
+
+    case 'DELETE_TODO':
       return {
         ...state,
-        todos: state.todos.map((t) =>
-          t.id === action.payload.id ? action.payload : t
-        ),
+        todos: state.todos.filter((t) => t.id !== action.payload.id),
+        editingId:
+          state.editingId === action.payload.id ? null : state.editingId,
       };
-    case 'REMOVE_TODO':
-      return {
-        ...state,
-        todos: state.todos.filter((t) => t.id !== action.payload),
-      };
-    case 'TOGGLE_TODO_COMPLETION':
-      return {
-        ...state,
-        todos: state.todos.map((t) =>
-          t.id === action.payload.id ? action.payload : t
-        ),
-      };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload };
+
+    case 'SET_EDITING_ID':
+      return { ...state, editingId: action.payload.id };
+
     default:
       return state;
   }
 }
 
-// --- Context ---
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
 interface TodoContextValue {
-  state: TodoState;
-  handleAddTodo: (input: CreateTodoInput) => void;
-  handleToggleCompletion: (id: string) => void;
-  handleRemoveTodo: (id: string) => void;
-  handleUpdateTodo: (id: string, updates: Partial<Todo>) => void;
+  todos: Todo[];
+  editingId: string | null;
+  addTodo: (todo: Todo) => void;
+  updateTodo: (id: string, updates: Partial<Todo>) => void;
+  deleteTodo: (id: string) => void;
+  setEditingId: (id: string | null) => void;
 }
 
 const TodoContext = createContext<TodoContextValue | null>(null);
 
-// --- Provider ---
-interface TodoProviderProps {
-  children: ReactNode;
-}
-
-export function TodoProvider({ children }: TodoProviderProps): JSX.Element {
+export function TodoProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(todoReducer, {
     todos: [],
-    isLoading: true,
-    error: null,
+    editingId: null,
   });
 
-  // 初期化: StorageからTodoを読み込む
+  // Initial load from LocalStorage
   useEffect(() => {
-    initialize();
-    const todos = getAllTodos();
-    dispatch({ type: 'INIT_TODOS', payload: todos });
+    const stored = loadTodosFromStorage();
+    dispatch({ type: 'LOAD_TODOS', payload: stored });
   }, []);
 
-  const handleAddTodo = useCallback((input: CreateTodoInput): void => {
-    try {
-      const todo = addTodo(input);
-      dispatch({ type: 'ADD_TODO', payload: todo });
-    } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: error instanceof Error ? error.message : '追加に失敗しました',
-      });
-    }
+  // Sync to LocalStorage on every todos mutation
+  useEffect(() => {
+    saveTodosToStorage(state.todos);
+  }, [state.todos]);
+
+  const addTodo = useCallback((todo: Todo) => {
+    dispatch({ type: 'ADD_TODO', payload: todo });
   }, []);
 
-  const handleToggleCompletion = useCallback((id: string): void => {
-    try {
-      const updated = toggleTodoCompletion(id);
-      dispatch({ type: 'TOGGLE_TODO_COMPLETION', payload: updated });
-    } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload:
-          error instanceof Error ? error.message : '更新に失敗しました',
-      });
-    }
+  const updateTodo = useCallback((id: string, updates: Partial<Todo>) => {
+    dispatch({ type: 'UPDATE_TODO', payload: { id, updates } });
   }, []);
 
-  const handleRemoveTodo = useCallback((id: string): void => {
-    try {
-      removeTodo(id);
-      dispatch({ type: 'REMOVE_TODO', payload: id });
-    } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload:
-          error instanceof Error ? error.message : '削除に失敗しました',
-      });
-    }
+  const deleteTodo = useCallback((id: string) => {
+    dispatch({ type: 'DELETE_TODO', payload: { id } });
   }, []);
 
-  const handleUpdateTodo = useCallback(
-    (id: string, updates: Partial<Todo>): void => {
-      try {
-        const updated = updateTodoInRepo(id, updates);
-        dispatch({ type: 'UPDATE_TODO', payload: updated });
-      } catch (error) {
-        dispatch({
-          type: 'SET_ERROR',
-          payload:
-            error instanceof Error ? error.message : '更新に失敗しました',
-        });
-      }
-    },
-    []
-  );
+  const setEditingId = useCallback((id: string | null) => {
+    dispatch({ type: 'SET_EDITING_ID', payload: { id } });
+  }, []);
 
   return (
     <TodoContext.Provider
       value={{
-        state,
-        handleAddTodo,
-        handleToggleCompletion,
-        handleRemoveTodo,
-        handleUpdateTodo,
+        todos: state.todos,
+        editingId: state.editingId,
+        addTodo,
+        updateTodo,
+        deleteTodo,
+        setEditingId,
       }}
     >
       {children}
@@ -169,11 +142,10 @@ export function TodoProvider({ children }: TodoProviderProps): JSX.Element {
   );
 }
 
-// --- Hook ---
 export function useTodoContext(): TodoContextValue {
-  const context = useContext(TodoContext);
-  if (!context) {
-    throw new Error('useTodoContext must be used within TodoProvider');
+  const ctx = useContext(TodoContext);
+  if (!ctx) {
+    throw new Error('useTodoContext must be used inside <TodoProvider>');
   }
-  return context;
+  return ctx;
 }

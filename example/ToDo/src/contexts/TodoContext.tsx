@@ -21,6 +21,7 @@ type TodoAction =
   | { type: 'INITIALIZE'; payload: Todo[] }
   | { type: 'ADD_TODO'; payload: Todo }
   | { type: 'TOGGLE_TODO'; payload: string }
+  | { type: 'EDIT_TODO'; payload: { id: string; title: string } }
   | { type: 'DELETE_TODO'; payload: string }
   | { type: 'RESTORE_TODO'; payload: { todo: Todo; originalIndex: number } };
 
@@ -43,6 +44,14 @@ function todoReducer(state: TodoState, action: TodoAction): TodoState {
         if (todo.id !== action.payload) return todo;
         return updateTodo(todo, { completed: !todo.completed });
       });
+      saveTodos(newTodos);
+      return { ...state, todos: newTodos };
+    }
+
+    case 'EDIT_TODO': {
+      const newTodos = state.todos.map((t) =>
+        t.id === action.payload.id ? updateTodo(t, { title: action.payload.title }) : t
+      );
       saveTodos(newTodos);
       return { ...state, todos: newTodos };
     }
@@ -77,6 +86,7 @@ interface TodoContextValue {
   initialized: boolean;
   addTodo: (title: string) => void;
   toggleTodo: (id: string) => void;
+  editTodo: (id: string, title: string) => void;
   deleteTodo: (id: string) => { todo: Todo; originalIndex: number } | null;
   restoreTodo: (todo: Todo, originalIndex: number) => void;
 }
@@ -110,6 +120,12 @@ export function TodoProvider({ children }: TodoProviderProps): React.JSX.Element
     dispatch({ type: 'TOGGLE_TODO', payload: id });
   }, []);
 
+  const editTodo = useCallback((id: string, title: string) => {
+    const trimmed = title.trim();
+    if (trimmed.length === 0) return;
+    dispatch({ type: 'EDIT_TODO', payload: { id, title: trimmed } });
+  }, []);
+
   const deleteTodo = useCallback(
     (id: string): { todo: Todo; originalIndex: number } | null => {
       const originalIndex = state.todos.findIndex((t) => t.id === id);
@@ -132,6 +148,7 @@ export function TodoProvider({ children }: TodoProviderProps): React.JSX.Element
         initialized: state.initialized,
         addTodo,
         toggleTodo,
+        editTodo,
         deleteTodo,
         restoreTodo,
       }}

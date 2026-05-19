@@ -1,0 +1,227 @@
+/* ============================================================
+   effects.css — かわいいエフェクト アニメーション定義
+   DA仕様 task-1779177098685 準拠
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   Effect-01: Task Complete Sparkle
+   ---------------------------------------------------------- */
+
+@keyframes sparkleParticle {
+  0% {
+    transform: translate(0, 0) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(var(--tx-20), var(--ty-20)) scale(1.2) rotate(45deg);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(var(--tx-60), var(--ty-60)) scale(1.0) rotate(135deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--tx-100), var(--ty-100)) scale(0) rotate(200deg);
+    opacity: 0;
+  }
+}
+
+@keyframes cardCompleteTransition {
+  0% {
+    background-color: #FFFFFF;
+    opacity: 1;
+  }
+  30% {
+    background-color: #FFF0F7;
+    opacity: 1;
+  }
+  100% {
+    background-color: #F9F0FF;
+    opacity: 0.85;
+  }
+}
+
+.sparkle-particle {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  z-index: 100;
+  animation: sparkleParticle 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  /* 星形: clip-path polygon */
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+
+.todo-card--completing {
+  animation: cardCompleteTransition 0.4s ease-out 0.1s forwards;
+}
+
+.todo-card--completed {
+  background-color: #F9F0FF;
+  opacity: 0.85;
+}
+
+.todo-card--completed .todo-card__title {
+  text-decoration: line-through;
+  color: #9B9B9B;
+  transition: all 0.4s ease-out;
+}
+
+/* ----------------------------------------------------------
+   Effect-02: Task Add Slide-In
+   ---------------------------------------------------------- */
+
+@keyframes taskSlideIn {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(2px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+}
+
+@keyframes taskHighlight {
+  0% {
+    background-color: #FFE4F0;
+  }
+  100% {
+    background-color: #FFFFFF;
+  }
+}
+
+.todo-card--entering {
+  animation:
+    taskSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1.0) forwards,
+    taskHighlight 0.5s ease-out 0.35s forwards;
+}
+
+/* ----------------------------------------------------------
+   Effect-03: Task Delete Fade-Out
+   ---------------------------------------------------------- */
+
+@keyframes taskDeleteOut {
+  0% {
+    transform: scale(1.0);
+    opacity: 1;
+    max-height: 120px;
+    margin-bottom: 12px;
+  }
+  40% {
+    transform: scale(0.95);
+    opacity: 0.6;
+    max-height: 120px;
+    margin-bottom: 12px;
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0;
+    max-height: 0px;
+    margin-bottom: 0px;
+  }
+}
+
+.todo-card--deleting {
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: taskDeleteOut 0.35s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  overflow: hidden;
+}
+
+/* ----------------------------------------------------------
+   Effect-04: All Tasks Complete Celebration Message
+   ---------------------------------------------------------- */
+
+@keyframes celebrationMessage {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0px);
+  }
+  75% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+}
+
+.celebration-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 201;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #FF6B9D;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: celebrationMessage 2.5s ease-out forwards;
+}
+
+/* ----------------------------------------------------------
+   Accessibility: prefers-reduced-motion
+   ---------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Effect-01: スパークルパーティクルは生成しない（JS側で制御）
+     カード背景色のみ即時変化 */
+  .todo-card--completing {
+    animation: none;
+    background-color: #F9F0FF;
+    opacity: 0.85;
+    transition: none;
+  }
+
+  .sparkle-particle {
+    display: none;
+  }
+
+  /* Effect-02: translateYアニメーションなし。ハイライトのみ短縮 */
+  .todo-card--entering {
+    animation: none;
+    background-color: #FFE4F0;
+    transition: background-color 0.1s ease-out;
+  }
+
+  /* Effect-03: scaleなし。opacityのみ短縮フェード */
+  .todo-card--deleting {
+    animation: none;
+    opacity: 0;
+    transition: opacity 0.1s ease-out;
+    max-height: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
+
+  /* Effect-04: confettiは生成しない（JS側で制御）
+     メッセージのみ短縮表示 */
+  .celebration-message {
+    animation: none;
+    opacity: 1;
+    transition: opacity 0.3s ease-out;
+  }
+}

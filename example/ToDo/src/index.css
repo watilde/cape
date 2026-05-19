@@ -251,15 +251,7 @@ ul {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  overflow-y: auto;
-  /* スクロールバー非表示（DA仕様: Safari対応） */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  touch-action: pan-y; /* DA モバイルタッチハンドオフ: スクロール競合防止 */
-}
-
-.task-list::-webkit-scrollbar {
-  display: none; /* Safari対応（DA仕様: webkit_scrollbar_note） */
+  padding-top: 2px;
 }
 
 .task-list--loading {
@@ -356,6 +348,25 @@ ul {
   text-decoration: line-through;
   text-decoration-color: var(--color-success);
   text-decoration-thickness: 2px;
+}
+
+.task-item__title:not(.task-item__title--completed) {
+  cursor: text;
+}
+
+.task-item__edit-input {
+  flex: 1;
+  font-family: var(--font-inter);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-secondary);
+  outline: none;
+  padding: 2px 0;
+  line-height: 1.5;
+  min-width: 0;
 }
 
 /* DA仕様: 削除ボタン（default opacity 0.25、hover 1.0） */

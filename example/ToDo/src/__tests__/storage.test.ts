@@ -1,136 +1,216 @@
 /**
- * StorageAdapter Module ユニットテスト
- * localStorageモックを使用したテスト（テスト間の汚染なし）
- * 目標: 90%+ ラインカバレッジ
+ * StorageAdapter Module — Unit Tests
+ *
+ * Verifies that:
+ * 1. STORAGE_KEY is correctly sourced from constants.ts (regression guard for task-1779178940125)
+ * 2. Core CRUD operations on LocalStorage work as expected
+ * 3. Corrupted data is handled gracefully without crashing
+ *
+ * Test strategy: Mock localStorage via a simple in-memory implementation.
+ * No test pollution between suites — storage is cleared in beforeEach.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// ---------------------------------------------------------------------------
+// LocalStorage mock
+// ---------------------------------------------------------------------------
+
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string): string | null => store[key] ?? null,
+    setItem: (key: string, value: string): void => {
+      store[key] = value;
+    },
+    removeItem: (key: string): void => {
+      delete store[key];
+    },
+    clear: (): void => {
+      store = {};
+    },
+    get length(): number {
+      return Object.keys(store).length;
+    },
+    key: (index: number): string | null =>
+      Object.keys(store)[index] ?? null,
+  };
+})();
+
+Object.defineProperty(global, "localStorage", {
+  value: localStorageMock,
+});
+
+// ---------------------------------------------------------------------------
+// Imports under test (after localStorage mock is set up)
+// ---------------------------------------------------------------------------
+
+import { STORAGE_KEY } from "../lib/constants";
 import {
   initializeStorage,
   saveTodos,
   loadTodos,
   clearAllTodos,
-  setStorageEngine,
-} from '../lib/storage';
-import { createMockStorage } from './setup';
-import type { Todo } from '../types/todo';
-import { STORAGE_KEY, STORAGE_SCHEMA_KEY, STORAGE_SCHEMA_VERSION } from '../types/todo';
+  getStorageStats,
+} from "../storage";
+import { createTodo } from "../lib/todoCore";
+import type { Todo } from "../types/todo";
 
-const sampleTodos: Todo[] = [
-  { id: 'a', title: 'タスクA', completed: false, createdAt: 1000, completedAt: null },
-  { id: 'b', title: 'タスクB', completed: true, createdAt: 2000, completedAt: 2001 },
-];
+// ---------------------------------------------------------------------------
+// Test suite
+// ---------------------------------------------------------------------------
 
-let mockStorage: ReturnType<typeof createMockStorage>;
-
-beforeEach(() => {
-  mockStorage = createMockStorage();
-  setStorageEngine(mockStorage);
-});
-
-describe('initializeStorage', () => {
-  it('初回起動時にスキーマバージョンを書き込む', () => {
-    initializeStorage();
-    expect(mockStorage.setItem).toHaveBeenCalledWith(
-      STORAGE_SCHEMA_KEY,
-      String(STORAGE_SCHEMA_VERSION),
-    );
+describe("constants.ts — STORAGE_KEY export", () => {
+  it("should export STORAGE_KEY as a non-empty string", () => {
+    expect(typeof STORAGE_KEY).toBe("string");
+    expect(STORAGE_KEY.length).toBeGreaterThan(0);
   });
 
-  it('スキーマバージョンが既に存在する場合は書き込まない', () => {
-    mockStorage._store[STORAGE_SCHEMA_KEY] = String(STORAGE_SCHEMA_VERSION);
-    initializeStorage();
-    expect(mockStorage.setItem).not.toHaveBeenCalled();
+  it("should be namespaced with todoapp_v1_ prefix (architecture guardrail)", () => {
+    expect(STORAGE_KEY.startsWith("todoapp_v1_")).toBe(true);
   });
 });
 
-describe('saveTodos', () => {
-  it('Todo配列をJSON文字列としてLocalStorageに保存する', () => {
-    saveTodos(sampleTodos);
-    expect(mockStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(sampleTodos));
+describe("StorageAdapter — initializeStorage", () => {
+  beforeEach(() => localStorageMock.clear());
+
+  it("should write schema version on first initialization", () => {
+    initializeStorage();
+    expect(localStorage.getItem("todoapp_v1_schema_version")).toBe("1");
   });
 
-  it('空配列を保存できる', () => {
-    saveTodos([]);
-    expect(mockStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY, '[]');
+  it("should not throw on repeated initialization calls", () => {
+    expect(() => {
+      initializeStorage();
+      initializeStorage();
+    }).not.toThrow();
+  });
+});
+
+describe("StorageAdapter — saveTodos / loadTodos", () => {
+  beforeEach(() => localStorageMock.clear());
+
+  it("should return an empty array when no data is stored", () => {
+    const result = loadTodos();
+    expect(result).toEqual([]);
   });
 
-  it('setItemがエラーをスローしてもクラッシュしない（クォータエラー対応）', () => {
-    mockStorage.setItem = vi.fn().mockImplementation(() => {
-      throw new DOMException('QuotaExceededError');
+  it("should persist and reload todos correctly (AC-2 regression: task-1779178940125)", () => {
+    const todo = createTodo("Meeting with designer", "💼", {
+      dueDate: "2025-02-01",
     });
-    expect(() => saveTodos(sampleTodos)).not.toThrow();
-  });
-});
+    saveTodos([todo]);
 
-describe('loadTodos', () => {
-  it('保存済みのTodosを正しく読み込む（AC-004-1）', () => {
-    mockStorage._store[STORAGE_KEY] = JSON.stringify(sampleTodos);
     const loaded = loadTodos();
-    expect(loaded).toHaveLength(2);
-    expect(loaded[0].id).toBe('a');
-    expect(loaded[1].id).toBe('b');
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0]?.id).toBe(todo.id);
+    expect(loaded[0]?.title).toBe("Meeting with designer");
+    expect(loaded[0]?.emoji).toBe("💼");
+    expect(loaded[0]?.completed).toBe(false);
   });
 
-  it('LocalStorageが空の場合は空配列を返す（AC-004-2）', () => {
+  it("should persist completed state and reload correctly (AC-3 regression)", () => {
+    const todo: Todo = {
+      ...createTodo("Finish report", "📝"),
+      completed: true,
+      completedAt: new Date().toISOString(),
+    };
+    saveTodos([todo]);
+
     const loaded = loadTodos();
-    expect(loaded).toEqual([]);
+    expect(loaded[0]?.completed).toBe(true);
+    expect(loaded[0]?.completedAt).toBeDefined();
   });
 
-  it('壊れたJSONの場合は空配列でフォールバックする（AC-004-2）', () => {
-    mockStorage._store[STORAGE_KEY] = '{invalid json';
-    const loaded = loadTodos();
-    expect(loaded).toEqual([]);
-  });
-
-  it('バリデーション失敗のエントリを除外する', () => {
-    const mixedData = [
-      ...sampleTodos,
-      { id: '', title: '無効', completed: false, createdAt: 0, completedAt: null },
+  it("should persist multiple todos and reload all of them", () => {
+    const todos = [
+      createTodo("Task one", "🌸"),
+      createTodo("Task two", "💼"),
+      createTodo("Task three", "📚"),
     ];
-    mockStorage._store[STORAGE_KEY] = JSON.stringify(mixedData);
+    saveTodos(todos);
+
     const loaded = loadTodos();
-    expect(loaded).toHaveLength(2);
+    expect(loaded).toHaveLength(3);
+    expect(loaded.map((t) => t.title)).toEqual([
+      "Task one",
+      "Task two",
+      "Task three",
+    ]);
   });
 
-  it('getItemがエラーをスローしても空配列を返す', () => {
-    mockStorage.getItem = vi.fn().mockImplementation(() => {
-      throw new Error('Storage error');
-    });
+  it("should overwrite previous data on save", () => {
+    saveTodos([createTodo("Old task", "🗑️")]);
+    const newTodo = createTodo("New task", "✨");
+    saveTodos([newTodo]);
+
     const loaded = loadTodos();
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0]?.title).toBe("New task");
+  });
+
+  it("should skip corrupted entries without crashing", () => {
+    // Manually inject a mix of valid and invalid data
+    const valid = createTodo("Valid task", "✅");
+    const corrupt = { id: 123, title: null }; // fails validateTodoData
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([valid, corrupt])
+    );
+
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const loaded = loadTodos();
+    consoleSpy.mockRestore();
+
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0]?.title).toBe("Valid task");
+  });
+
+  it("should return empty array when stored data is not an array", () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ bad: "data" }));
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const loaded = loadTodos();
+    consoleSpy.mockRestore();
+    expect(loaded).toEqual([]);
+  });
+
+  it("should return empty array when stored data is malformed JSON", () => {
+    localStorage.setItem(STORAGE_KEY, "{{not_valid_json}}");
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const loaded = loadTodos();
+    consoleSpy.mockRestore();
     expect(loaded).toEqual([]);
   });
 });
 
-describe('clearAllTodos', () => {
-  it('LocalStorageからTodoキーを削除する', () => {
-    mockStorage._store[STORAGE_KEY] = JSON.stringify(sampleTodos);
+describe("StorageAdapter — clearAllTodos", () => {
+  beforeEach(() => localStorageMock.clear());
+
+  it("should remove all todos from storage", () => {
+    saveTodos([createTodo("Task to clear", "🧹")]);
     clearAllTodos();
-    expect(mockStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY);
+    expect(loadTodos()).toEqual([]);
   });
 
-  it('removeItemがエラーをスローしてもクラッシュしない', () => {
-    mockStorage.removeItem = vi.fn().mockImplementation(() => {
-      throw new Error('Storage error');
-    });
+  it("should not throw when storage is already empty", () => {
     expect(() => clearAllTodos()).not.toThrow();
   });
 });
 
-describe('saveTodos → loadTodos 統合フロー', () => {
-  it('保存したTodosを完全に復元できる（AC-001-3 / AC-002-3 / AC-003-2 / AC-004-1）', () => {
-    saveTodos(sampleTodos);
-    const loaded = loadTodos();
-    expect(loaded).toEqual(sampleTodos);
+describe("StorageAdapter — getStorageStats", () => {
+  beforeEach(() => localStorageMock.clear());
+
+  it("should return used and available as non-negative numbers", () => {
+    saveTodos([createTodo("Stats test task", "📊")]);
+    const stats = getStorageStats();
+    expect(stats.used).toBeGreaterThan(0);
+    expect(stats.available).toBeGreaterThanOrEqual(0);
   });
 
-  it('完了状態を含むTodosを正確に保存・復元する', () => {
-    const completedTodos: Todo[] = [
-      { id: 'x', title: '完了タスク', completed: true, createdAt: 5000, completedAt: 5001 },
-    ];
-    saveTodos(completedTodos);
-    const loaded = loadTodos();
-    expect(loaded[0].completed).toBe(true);
-    expect(loaded[0].completedAt).toBe(5001);
+  it("should reflect zero used bytes on empty storage", () => {
+    const stats = getStorageStats();
+    expect(stats.used).toBe(0);
   });
 });

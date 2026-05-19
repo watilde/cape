@@ -4,9 +4,9 @@
  * Webアプリ完結設計（ipcRenderer等のElectron依存は一切含まない）
  */
 
-import { STORAGE_KEY, STORAGE_SCHEMA_KEY, STORAGE_SCHEMA_VERSION } from '../types/todo';
+import { STORAGE_KEY, STORAGE_SCHEMA_KEY, STORAGE_SCHEMA_VERSION } from './constants';
 import type { Todo } from '../types/todo';
-import { validateTodoArray } from './todoCore';
+import { validateTodoData } from './todoCore';
 
 /**
  * StorageAdapterのストレージ実装インターフェース
@@ -68,7 +68,8 @@ export function loadTodos(): Todo[] {
     const raw = storageEngine.getItem(STORAGE_KEY);
     if (raw === null) return [];
     const parsed: unknown = JSON.parse(raw);
-    return validateTodoArray(parsed);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(validateTodoData);
   } catch {
     // JSON.parseエラーや壊れたデータ——空配列でフォールバック
     return [];

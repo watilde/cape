@@ -1,99 +1,97 @@
-import { Todo } from './types';
-import { validateTodoArray } from './todoCore';
+import { Todo } from '../types/todo';
 
 const STORAGE_KEY = 'todoapp_v1_todos';
 const BACKUP_KEY = 'todoapp_v1_todos_backup';
 
-/**
- * LocalStorageが利用可能かチェックする
- */
-export function isStorageAvailable(): boolean {
-  try {
-    const testKey = '__storage_test__';
-    localStorage.setItem(testKey, '1');
-    localStorage.removeItem(testKey);
-    return true;
-  } catch {
-    return false;
-  }
-}
+// ---------------------------------------------------------------------------
+// Initialize
+// ---------------------------------------------------------------------------
 
-/**
- * ストレージを初期化する（初回起動時）
- */
 export function initializeStorage(): void {
-  if (!isStorageAvailable()) return;
-  if (localStorage.getItem(STORAGE_KEY) === null) {
+  if (!localStorage.getItem(STORAGE_KEY)) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
   }
 }
 
-/**
- * Todo配列をLocalStorageに保存する
- */
+// ---------------------------------------------------------------------------
+// Load
+// ---------------------------------------------------------------------------
+
+export function loadTodos(): Todo[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidTodo);
+  } catch {
+    // Attempt recovery from backup
+    try {
+      const backup = localStorage.getItem(BACKUP_KEY);
+      if (!backup) return [];
+      const parsed: unknown = JSON.parse(backup);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(isValidTodo);
+    } catch {
+      return [];
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Save
+// ---------------------------------------------------------------------------
+
 export function saveTodos(todos: Todo[]): void {
-  if (!isStorageAvailable()) return;
   try {
     const serialized = JSON.stringify(todos);
-    // バックアップを先に書いてから本体を更新（障害復旧用）
+    // Write backup first
     localStorage.setItem(BACKUP_KEY, localStorage.getItem(STORAGE_KEY) ?? '[]');
     localStorage.setItem(STORAGE_KEY, serialized);
   } catch (e) {
-    console.error('[StorageAdapter] Failed to save todos:', e);
-    throw new Error('STORAGE_QUOTA_EXCEEDED');
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+      console.warn('[StorageAdapter] LocalStorage quota exceeded');
+      // Surface to UI via custom event
+      window.dispatchEvent(new CustomEvent('storage-quota-exceeded'));
+    }
   }
 }
 
-/**
- * LocalStorageからTodo配列を読み込む
- */
-export function loadTodos(): Todo[] {
-  if (!isStorageAvailable()) return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw === null) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (validateTodoArray(parsed)) {
-      return parsed;
-    }
-    // メインストレージが壊れていたらバックアップを試みる
-    console.warn('[StorageAdapter] Main storage corrupted, trying backup');
-    const backup = localStorage.getItem(BACKUP_KEY);
-    if (backup !== null) {
-      const backupParsed: unknown = JSON.parse(backup);
-      if (validateTodoArray(backupParsed)) {
-        return backupParsed;
-      }
-    }
-    return [];
-  } catch {
-    return [];
-  }
-}
+// ---------------------------------------------------------------------------
+// Clear
+// ---------------------------------------------------------------------------
 
-/**
- * すべてのTodoデータをクリアする
- */
 export function clearAllTodos(): void {
-  if (!isStorageAvailable()) return;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(BACKUP_KEY);
 }
 
-/**
- * ストレージ使用状況を返す（バイト数の概算）
- */
-export function getStorageStats(): { usedBytes: number } {
-  try {
-    let total = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        total += key.length + (localStorage.getItem(key)?.length ?? 0);
-      }
-    }
-    return { usedBytes: total * 2 }; // UTF-16 概算
-  } catch {
-    return { usedBytes: 0 };
+// ---------------------------------------------------------------------------
+// Stats
+// ---------------------------------------------------------------------------
+
+export function getStorageStats(): { used: number; available: number } {
+  let used = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i) ?? '';
+    used += key.length + (localStorage.getItem(key)?.length ?? 0);
   }
+  const MAX_BYTES = 5 * 1024 * 1024; // 5MB conservative estimate
+  return { used, available: MAX_BYTES - used };
+}
+
+// ---------------------------------------------------------------------------
+// Validator (runtime guard)
+// ---------------------------------------------------------------------------
+
+function isValidTodo(data: unknown): data is Todo {
+  if (typeof data !== 'object' || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return (
+    typeof d['id'] === 'string' &&
+    typeof d['title'] === 'string' &&
+    typeof d['emoji'] === 'string' &&
+    (d['status'] === 'active' || d['status'] === 'completed') &&
+    typeof d['createdAt'] === 'number'
+  );
 }

@@ -1,87 +1,121 @@
 /**
  * TodoCore Module
- * 純粋なドメインロジック——外部依存なし、副作用なし
- * LocalStorage・React・DOM一切触らない
+ *
+ * Responsibility: Manage todo item lifecycle and data model.
+ * Pure domain logic — no dependencies on storage, UI, or framework code.
+ *
+ * Architecture layer: Domain Logic Layer
+ * Dependencies: None
  */
 
-import type { Todo } from '../types/todo';
+import type { Todo } from "../types/todo";
+
+// ---------------------------------------------------------------------------
+// ID generation
+// ---------------------------------------------------------------------------
 
 /**
- * タイムスタンプベースのUUID生成
- * 同一ミリ秒内の衝突を防ぐためランダムサフィックスを追加
+ * Generate a unique todo identifier using timestamp + random suffix.
+ * Collision probability is negligible for single-user client-side usage.
  */
-export function generateId(): string {
+function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+// ---------------------------------------------------------------------------
+// CRUD operations
+// ---------------------------------------------------------------------------
+
 /**
- * 新しいTodoオブジェクトを生成する
- * AC-001-1: タスク作成でリストに追加される
+ * Create a new todo item with sensible defaults.
  */
-export function createTodo(title: string): Todo {
-  const trimmed = title.trim();
-  if (trimmed.length === 0) {
-    throw new Error('タスクのタイトルは空にできません');
+export function createTodo(
+  title: string,
+  emoji: string,
+  options?: { description?: string; dueDate?: string }
+): Todo {
+  if (title.trim().length === 0) {
+    throw new Error("[TodoCore] Todo title must not be empty.");
   }
-  if (trimmed.length > 100) {
-    throw new Error('タスクのタイトルは100文字以内にしてください');
+  if (title.length > 100) {
+    throw new Error("[TodoCore] Todo title must be 100 characters or fewer.");
   }
+
   return {
     id: generateId(),
-    title: trimmed,
+    title: title.trim(),
+    emoji,
+    description: options?.description,
+    dueDate: options?.dueDate,
     completed: false,
-    createdAt: Date.now(),
-    completedAt: null,
+    createdAt: new Date().toISOString(),
   };
 }
 
 /**
- * Todoのプロパティを更新する（イミュータブル）
- * AC-002-1: 完了状態のトグル
+ * Apply a partial update to an existing todo, returning the updated entity.
+ * Does not mutate the original object.
  */
-export function updateTodo(todo: Todo, updates: Partial<Pick<Todo, 'title' | 'completed' | 'completedAt'>>): Todo {
-  const updated = { ...todo, ...updates };
+export function updateTodo(existing: Todo, updates: Partial<Todo>): Todo {
+  const updated: Todo = { ...existing, ...updates };
 
-  // completedがtrueになった場合はcompletedAtを自動設定
-  if (updates.completed === true && todo.completed === false) {
-    updated.completedAt = Date.now();
+  // Automatically set completedAt when transitioning to completed
+  if (updates.completed === true && existing.completed === false) {
+    updated.completedAt = new Date().toISOString();
   }
-  // completedがfalseに戻った場合はcompletedAtをクリア
-  if (updates.completed === false) {
-    updated.completedAt = null;
+
+  // Clear completedAt when un-completing a todo
+  if (updates.completed === false && existing.completed === true) {
+    updated.completedAt = undefined;
   }
 
   return updated;
 }
 
 /**
- * ランタイムバリデーション：パース済みデータがTodo型かどうか確認する
- * StorageAdapterでのデシリアライズ後に使用
+ * Mark a todo as logically deleted (soft delete).
+ * The item remains in storage for undo support.
  */
-export function validateTodoData(data: unknown): data is Todo {
-  if (typeof data !== 'object' || data === null) return false;
-  const d = data as Record<string, unknown>;
-  return (
-    typeof d['id'] === 'string' &&
-    d['id'].length > 0 &&
-    typeof d['title'] === 'string' &&
-    typeof d['completed'] === 'boolean' &&
-    typeof d['createdAt'] === 'number' &&
-    (d['completedAt'] === null || typeof d['completedAt'] === 'number')
+export function deleteTodo(existing: Todo): Todo {
+  return { ...existing, deleted: true };
+}
+
+// ---------------------------------------------------------------------------
+// Sorting
+// ---------------------------------------------------------------------------
+
+export function sortTodosByCreatedAt(todos: Todo[]): Todo[] {
+  return [...todos].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
-/**
- * 配列からTodoを安全にバリデートする（壊れたエントリは除外）
- */
-export function validateTodoArray(data: unknown): Todo[] {
-  if (!Array.isArray(data)) return [];
-  return data.filter(validateTodoData);
-}
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
 
 /**
- * Todo配列をcreatedAtの降順（新しい順）にソート
+ * Runtime type guard for the Todo interface.
+ * Used by StorageAdapter when loading data from LocalStorage to guard
+ * against corrupted or schema-mismatched entries.
  */
-export function sortTodosByCreatedAt(todos: Todo[]): Todo[] {
-  return [...todos].sort((a, b) => b.createdAt - a.createdAt);
+export function validateTodoData(data: unknown): data is Todo {
+  if (typeof data !== "object" || data === null) return false;
+
+  const d = data as Record<string, unknown>;
+
+  return (
+    typeof d["id"] === "string" &&
+    d["id"].length > 0 &&
+    typeof d["title"] === "string" &&
+    d["title"].length > 0 &&
+    typeof d["emoji"] === "string" &&
+    typeof d["completed"] === "boolean" &&
+    typeof d["createdAt"] === "string" &&
+    // Optional fields — only validate type if present
+    (d["description"] === undefined || typeof d["description"] === "string") &&
+    (d["dueDate"] === undefined || typeof d["dueDate"] === "string") &&
+    (d["completedAt"] === undefined || typeof d["completedAt"] === "string") &&
+    (d["deleted"] === undefined || typeof d["deleted"] === "boolean")
+  );
 }
