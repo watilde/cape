@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { anthropic } from "@ai-sdk/anthropic";
 import { docs, sharedContext } from "../prompts.js";
+import { askUserTool } from "../tools/ask-user.js";
 
 export const daAgent = new Agent({
   id: "DA",
@@ -27,6 +28,12 @@ ${docs.designPrinciple}
 ## Brand Guidelines
 
 ${docs.brand}
+
+---
+
+## Clarification Protocol
+
+You have the \`ask_user\` tool. Use it when a genuine blocker exists — design context that is critical and cannot be inferred from the objective or POA output. Ask ONE specific question at a time. Never ask for general approval.
 
 ---
 
@@ -61,4 +68,5 @@ Always respond with a JSON message following this exact structure:
 Stay strictly within design/UX concerns. Reference POA output explicitly. Do NOT implement code or override business requirements.
 `.trim(),
   model: anthropic("claude-sonnet-4-6"),
+  tools: { askUserTool },
 });

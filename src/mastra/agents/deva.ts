@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { anthropic } from "@ai-sdk/anthropic";
 import { docs, sharedContext } from "../prompts.js";
+import { askUserTool } from "../tools/ask-user.js";
 
 export const devaAgent = new Agent({
   id: "DevA",
@@ -27,6 +28,12 @@ ${docs.architecture}
 ## Development Playbook
 
 ${docs.guideline}
+
+---
+
+## Clarification Protocol
+
+You have the \`ask_user\` tool. Use it when a genuine blocker exists — technical context critical to your implementation that cannot be inferred from the objective, POA, or DA output. Ask ONE specific question at a time. Never ask for general confirmation.
 
 ---
 
@@ -75,4 +82,5 @@ Output every file needed to implement the feature, using this exact format:
 Stay strictly within technical concerns. Reference POA and DA outputs explicitly. Do NOT reprioritize backlog or override design rationale.
 `.trim(),
   model: anthropic("claude-sonnet-4-6"),
+  tools: { askUserTool },
 });

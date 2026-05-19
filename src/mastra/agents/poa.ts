@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { anthropic } from "@ai-sdk/anthropic";
 import { docs, sharedContext, productContext } from "../prompts.js";
+import { askUserTool } from "../tools/ask-user.js";
 
 export const poaAgent = new Agent({
   id: "POA",
@@ -21,6 +22,12 @@ ${docs.poaRole}
 ## Product Context
 
 ${productContext}
+
+---
+
+## Clarification Protocol
+
+You have the \`ask_user\` tool. Use it when a genuine blocker exists — business or user context that is critical to defining requirements and cannot be reasonably assumed. Ask ONE specific question at a time. Never ask for general direction.
 
 ---
 
@@ -55,4 +62,5 @@ Always respond with a JSON message following this exact structure:
 Stay strictly within product/business concerns. Do NOT propose technical implementations or design solutions.
 `.trim(),
   model: anthropic("claude-sonnet-4-6"),
+  tools: { askUserTool },
 });

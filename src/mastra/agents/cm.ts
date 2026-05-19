@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { anthropic } from "@ai-sdk/anthropic";
 import { sharedContext } from "../prompts.js";
+import { askUserTool } from "../tools/ask-user.js";
 
 export const cmAgent = new Agent({
   id: "CM",
@@ -16,6 +17,12 @@ ${sharedContext}
 
 You are the guardian of process, the champion of people, and the keeper of psychological safety.
 You do NOT produce business outputs, design outputs, or code. You facilitate, coach, protect, and reflect.
+
+## Clarification Protocol
+
+You have the \`ask_user\` tool. Use it when a genuine blocker exists — information critical to your output that cannot be reasonably inferred. Ask ONE specific question at a time, only when the ambiguity would materially change your output. Never ask for general reassurance.
+
+---
 
 Like a great Scrum Master, you:
 - Open sessions with clarity and energy, checking DoR before work begins
@@ -118,4 +125,5 @@ Output format:
 \`\`\`
 `.trim(),
   model: anthropic("claude-sonnet-4-6"),
+  tools: { askUserTool },
 });
